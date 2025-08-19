@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flappyTOM</title>
+    <!-- Using TOM gear as favicon for branding -->
+    <link rel="icon" type="image/png" href="TOMzahnrad.png">
+    <!-- Loading Montserrat font for consistent typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Global reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Main body styling with centered layout */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #E6E6E6; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Prevent scrolling */
+        }
+
+        /* Game container with responsive sizing and 8-bit border styling */
+        #gameContainer {
+            width: 100%;
+            max-width: 720px; /* Maximum game width */
+            height: 100vh;
+            max-height: 1280px; /* Maximum game height */
+            position: relative;
+            background-color: #E6E6E6;
+            /* 8-bit style border with layered shadows for depth */
+            border: 8px solid #333;
+            border-style: solid;
+            overflow: hidden;
+            box-shadow: 12px 12px 0px #999, 0 0 0 4px #666;
+        }
+
+        /* Canvas styling with pixelated rendering for 8-bit look */
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            /* Pixelated rendering for crisp 8-bit graphics */
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        /* Base styling for game screens (start and game over) */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(230, 230, 230, 0.95); /* Semi-transparent overlay */
+            z-index: 10; /* Above game canvas */
+        }
+
+        /* Hidden state for screens */
+        .screen.hidden {
+            display: none;
+        }
+
+        /* Main title styling with 8-bit text effects */
+        h1 {
+            font-size: clamp(2rem, 8vw, 4rem); /* Responsive font size */
+            font-weight: 900;
+            color: #333;
+            margin-bottom: 1rem;
+            /* Multi-layered text shadow for 8-bit depth effect */
+            text-shadow: 
+                4px 0px 0px #FFBE5A,
+                0px 4px 0px #FFBE5A,
+                4px 4px 0px #FF9500,
+                8px 8px 0px #CC7700;
+            letter-spacing: 4px;
+            filter: contrast(1.2);
+        }
+
+        /* Instruction text styling */
+        .instructions {
+            font-size: clamp(1rem, 4vw, 1.5rem);
+            color: #333;
+            text-align: center;
+            margin-bottom: 2rem;
+            max-width: 80%;
+            font-weight: 700;
+            text-shadow: 2px 2px 0px #DADADA;
+        }
+
+        /* 8-bit style button with layered shadows and hover effects */
+        .button {
+            font-family: 'Montserrat', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.5rem);
+            font-weight: 700;
+            padding: 1rem 2rem;
+            background-color: #FFBE5A; /* TOM brand yellow */
+            color: #333;
+            border: 4px solid #333;
+            border-style: solid;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            /* 8-bit style layered box shadows */
+            box-shadow: 
+                4px 4px 0px #CC7700,
+                8px 8px 0px #999;
+            position: relative;
+        }
+
+        /* Button hover effect - lifts button with enhanced shadow */
+        .button:hover {
+            background-color: #FFD700;
+            transform: translate(-2px, -2px);
+            box-shadow: 
+                6px 6px 0px #CC7700,
+                10px 10px 0px #999;
+        }
+
+        /* Button active effect - pressed down appearance */
+        .button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 
+                2px 2px 0px #CC7700,
+                4px 4px 0px #999;
+        }
+
+        /* Score display positioned at top center */
+        .score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+            font-weight: 900;
+            color: #333;
+            /* 8-bit text shadow effect for score */
+            text-shadow: 
+                3px 0px 0px #FFBE5A,
+                0px 3px 0px #FFBE5A,
+                3px 3px 0px #FF9500,
+                6px 6px 0px #CC7700;
+            z-index: 5;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 8px 16px;
+            border: 2px solid #333;
+        }
+
+        /* High score display styling */
+        .highscore-display {
+            font-size: clamp(1.2rem, 5vw, 2rem);
+            color: #333;
+            margin: 1rem 0;
+            text-align: center;
+            font-weight: 700;
+            text-shadow: 2px 2px 0px #DADADA;
+        }
+
+        /* New high score celebration styling with animation */
+        .new-highscore {
+            color: #FF3333;
+            font-weight: 900;
+            animation: pulse8bit 0.5s infinite;
+            text-shadow: 
+                2px 2px 0px #FF9999,
+                4px 4px 0px #CC0000;
+        }
+
+        /* 8-bit style pulsing animation for new high score */
+        @keyframes pulse8bit {
+            0%, 100% { 
+                transform: scale(1); 
+                filter: brightness(1);
+            }
+            50% { 
+                transform: scale(1.2); 
+                filter: brightness(1.3);
+            }
+        }
+
+        /* Career link styling - positioned in bottom right */
+        .career-link {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+            color: #666;
+            text-decoration: none;
+            z-index: 20; /* Above all other elements */
+            transition: color 0.2s;
+            font-weight: 700;
+            text-shadow: 1px 1px 0px #DADADA;
+        }
+
+        /* Career link hover effect */
+        .career-link:hover {
+            color: #FFBE5A;
+            text-shadow: 1px 1px 0px #FF9500;
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 480px) {
+            #gameContainer {
+                border: 2px solid #333;
+                box-shadow: 4px 4px 0px #999;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <!-- Main game canvas where all gameplay is rendered -->
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Score display - shows current score during gameplay -->
+        <div class="score" id="scoreDisplay">0</div>
+        
+        <!-- Persistent career link in bottom right corner -->
+        <a href="https://www.tom-instandhaltungssoftware.de/ueber-tom/karriere/" target="_blank" class="career-link">
+            Karriere im TOMteam
+        </a>
+        
+        <!-- Start screen - shown when game loads -->
+        <div id="startScreen" class="screen">
+            <h1>flappyTOM</h1>
+            <div class="instructions">
+                Steuere das Zahnrad durch die Hindernisse!<br>
+                <strong>Leertaste</strong> oder <strong>Mausklick</strong> zum Springen
+            </div>
+            <div class="highscore-display" id="startHighscore">Bester Score: 0</div>
+            <button class="button" onclick="startGame()">START</button>
+            <div style="margin-top: 1rem; font-size: 0.9rem; color: #666; font-weight: 700;">
+                Leertaste zum Start
+            </div>
+        </div>
+        
+        <!-- Game over screen - shown when player dies -->
+        <div id="gameOverScreen" class="screen hidden">
+            <h1>GAME OVER</h1>
+            <div class="highscore-display" id="finalScore">Score: 0</div>
+            <div class="highscore-display" id="gameOverHighscore">Bester Score: 0</div>
+            <div id="newHighscoreMessage" class="new-highscore" style="display: none;">
+                ★ NEUER REKORD! ★
+            </div>
+            <button class="button" onclick="restartGame()">NOCHMAL</button>
+            <div style="margin-top: 1rem; font-size: 0.9rem; color: #666; font-weight: 700;">
+                Leertaste für Neustart
+            </div>
+            <!-- Additional career link on game over screen -->
+            <a href="https://www.tom-instandhaltungssoftware.de/ueber-tom/karriere/" target="_blank" class="career-link" style="position: relative; bottom: auto; right: auto; margin-top: 2rem; font-size: 0.9rem;">
+                Entdecke Deine Karriere im TOMteam
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Canvas and rendering context setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game state variables
+        let gameState = 'start'; // Possible states: 'start', 'playing', 'gameOver'
+        let score = 0; // Current game score
+        let highScore = localStorage.getItem('flappyTomHighScore') || 0; // Persistent high score
+        let gameOverTimer = 0; // Timer to prevent accidental restart
+        let gameOverDelay = 1000; // 1 second delay before allowing restart
+        
+        // Player object - represents the rotating gear
+        let player = {
+            x: 0, // X position (set in resizeCanvas)
+            y: 0, // Y position (set in resizeCanvas)
+            size: 44, // Player size in pixels (25% larger than original 35px)
+            velocity: 0, // Current vertical velocity
+            rotation: 0, // Current rotation angle in degrees
+            jumpPower: -12, // Upward velocity when jumping (negative = up)
+            gravity: 0.8 // Downward acceleration per frame
+        };
+        
+        // Pipe system variables
+        let pipes = []; // Array to store all active pipes
+        let pipeWidth = 80; // Width of each pipe in pixels
+        let pipeGap = 200; // Gap between top and bottom pipes
+        let pipeSpeed = 3; // Horizontal speed of pipes (pixels per frame)
+        
+        // Player image loading
+        let playerImage = new Image();
+        playerImage.src = 'TOMzahnrad.png'; // TOM gear image
+        let imageLoaded = false; // Flag to check if image is ready
+        
+        // Image load callback - sets flag when image is ready
+        playerImage.onload = function() {
+            imageLoaded = true;
+        };
+        
+        /**
+         * Resize canvas to fit container and set initial player position
+         * Called on window resize and initialization
+         */
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            
+            // Position player at 20% from left, center vertically
+            player.x = canvas.width * 0.2;
+            player.y = canvas.height / 2;
+        }
+        
+        /**
+         * Initialize game - set up canvas, event listeners, and display
+         */
+        function init() {
+            resizeCanvas();
+            updateHighScoreDisplay();
+            
+            // Set up event listeners
+            window.addEventListener('resize', resizeCanvas);
+            document.addEventListener('keydown', handleInput);
+            canvas.addEventListener('click', handleInput);
+        }
+        
+        /**
+         * Handle all user input (keyboard and mouse)
+         * Routes input based on current game state
+         */
+        function handleInput(e) {
+            // Only respond to spacebar for keyboard events
+            if (e.type === 'keydown' && e.code !== 'Space') return;
+            
+            if (gameState === 'start') {
+                startGame();
+            } else if (gameState === 'playing') {
+                jump(); // Make player jump
+            } else if (gameState === 'gameOver') {
+                // Only allow restart after delay to prevent accidental restart
+                if (Date.now() - gameOverTimer > gameOverDelay) {
+                    restartGame();
+                }
+            }
+        }
+        
+        /**
+         * Start a new game - reset all variables and begin gameplay
+         */
+        function startGame() {
+            gameState = 'playing';
+            score = 0;
+            pipes = []; // Clear all existing pipes
+            player.y = canvas.height / 2; // Reset player position
+            player.velocity = 0; // Reset player velocity
+            player.rotation = 0; // Reset player rotation
+            
+            // Hide all screens to show gameplay
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            
+            // Generate first pipe
+            generatePipe();
+            
+            // Start the game loop
+            gameLoop();
+        }
+        
+        /**
+         * Restart game - alias for startGame for clarity
+         */
+        function restartGame() {
+            startGame();
+        }
+        
+        /**
+         * Make player jump - applies upward velocity
+         */
+        function jump() {
+            player.velocity = player.jumpPower;
+        }
+        
+        /**
+         * Generate a new pipe with random gap position
+         * Pipes consist of top and bottom sections with a gap between
+         */
+        function generatePipe() {
+            const minHeight = 100; // Minimum top pipe height
+            const maxHeight = canvas.height - pipeGap - minHeight; // Maximum top pipe height
+            const topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
+            
+            pipes.push({
+                x: canvas.width, // Start at right edge of screen
+                topHeight: topHeight, // Height of top pipe section
+                bottomY: topHeight + pipeGap, // Y position where bottom pipe starts
+                bottomHeight: canvas.height - (topHeight + pipeGap), // Height of bottom pipe section
+                passed: false // Flag to track if player has passed this pipe (for scoring)
+            });
+        }
+        
+        /**
+         * Update player physics - apply gravity and rotation
+         */
+        function updatePlayer() {
+            // Apply gravity to velocity
+            player.velocity += player.gravity;
+            // Apply velocity to position
+            player.y += player.velocity;
+            // Continuous rotation for visual effect
+            player.rotation += 5;
+            
+            // Keep rotation within 0-360 degrees
+            if (player.rotation >= 360) player.rotation = 0;
+        }
+        
+        /**
+         * Update all pipes - move them left and handle scoring
+         */
+        function updatePipes() {
+            // Update each pipe
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                pipes[i].x -= pipeSpeed; // Move pipe left
+                
+                // Check if player has passed this pipe (for scoring)
+                if (!pipes[i].passed && pipes[i].x + pipeWidth < player.x) {
+                    pipes[i].passed = true;
+                    score++; // Increment score
+                    document.getElementById('scoreDisplay').textContent = score;
+                }
+                
+                // Remove pipes that have moved off screen
+                if (pipes[i].x + pipeWidth < 0) {
+                    pipes.splice(i, 1);
+                }
+            }
+            
+            // Generate new pipe when needed
+            // Generate when no pipes exist or last pipe is far enough left
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 300) {
+                generatePipe();
+            }
+        }
+        
+        /**
+         * Check for collisions between player and pipes/boundaries
+         * Triggers game over if collision detected
+         */
+        function checkCollisions() {
+            // Check collision with top/bottom boundaries
+            if (player.y + player.size/2 > canvas.height || player.y - player.size/2 < 0) {
+                gameOver();
+                return;
+            }
+            
+            // Check collision with pipes
+            for (let pipe of pipes) {
+                // Check if player is horizontally aligned with pipe
+                if (player.x + player.size/2 > pipe.x && 
+                    player.x - player.size/2 < pipe.x + pipeWidth) {
+                    
+                    // Check if player is vertically colliding with pipe sections
+                    if (player.y - player.size/2 < pipe.topHeight || 
+                        player.y + player.size/2 > pipe.bottomY) {
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+        }
+        
+        /**
+         * Handle game over - update high score and show game over screen
+         */
+        function gameOver() {
+            gameState = 'gameOver';
+            gameOverTimer = Date.now(); // Start timer to prevent accidental restart
+            
+            // Check and update high score
+            let isNewHighScore = false;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('flappyTomHighScore', highScore); // Persist high score
+                isNewHighScore = true;
+            }
+            
+            // Update game over screen displays
+            document.getElementById('finalScore').textContent = `Score: ${score}`;
+            document.getElementById('gameOverHighscore').textContent = `Bester Score: ${highScore}`;
+            
+            // Show/hide new high score message
+            if (isNewHighScore) {
+                document.getElementById('newHighscoreMessage').style.display = 'block';
+            } else {
+                document.getElementById('newHighscoreMessage').style.display = 'none';
+            }
+            
+            // Show game over screen
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+        
+        /**
+         * Update high score display on start screen
+         */
+        function updateHighScoreDisplay() {
+            document.getElementById('startHighscore').textContent = `Bester Score: ${highScore}`;
+        }
+        
+        /**
+         * Draw the player (rotating gear) on canvas
+         */
+        function drawPlayer() {
+            ctx.save(); // Save current canvas state
+            ctx.translate(player.x, player.y); // Move to player position
+            ctx.rotate(player.rotation * Math.PI / 180); // Apply rotation
+            
+            if (imageLoaded) {
+                // Draw the TOM gear image
+                ctx.drawImage(playerImage, -player.size/2, -player.size/2, player.size, player.size);
+            } else {
+                // Fallback: draw simple circle if image not loaded
+                ctx.fillStyle = '#4A90E2';
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, player.size/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+            
+            ctx.restore(); // Restore canvas state
+        }
+        
+        /**
+         * Draw all pipes on canvas
+         * Pipes are drawn as simple rectangles with caps
+         */
+        function drawPipes() {
+            ctx.fillStyle = '#FFBE5A'; // TOM brand yellow
+            ctx.strokeStyle = '#333'; // Black outline
+            ctx.lineWidth = 4;
+            
+            for (let pipe of pipes) {
+                // Draw top pipe section
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+                ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+                
+                // Draw bottom pipe section
+                ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+                ctx.strokeRect(pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+                
+                // Draw pipe caps (wider sections at gap)
+                ctx.fillStyle = '#FF9500'; // Darker yellow for caps
+                ctx.fillRect(pipe.x - 8, pipe.topHeight - 24, pipeWidth + 16, 24);
+                ctx.fillRect(pipe.x - 8, pipe.bottomY, pipeWidth + 16, 24);
+                ctx.strokeRect(pipe.x - 8, pipe.topHeight - 24, pipeWidth + 16, 24);
+                ctx.strokeRect(pipe.x - 8, pipe.bottomY, pipeWidth + 16, 24);
+                
+                ctx.fillStyle = '#FFBE5A'; // Reset to main pipe color
+            }
+        }
+        
+        /**
+         * Draw animated background with moving pixelated clouds
+         */
+        function drawBackground() {
+            // Fill background with light gray
+            ctx.fillStyle = '#E6E6E6';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw moving pixelated clouds
+            ctx.fillStyle = '#F0F0F0'; // Light cloud color
+            ctx.strokeStyle = '#DADADA'; // Cloud outline
+            ctx.lineWidth = 2;
+            
+            // Draw 3 cloud layers at different speeds and positions
+            for (let i = 0; i < 3; i++) {
+                // Calculate cloud position with slow horizontal movement
+                const x = (i * 200 + Date.now() * 0.01) % (canvas.width + 120);
+                const y = 60 + i * 80; // Vertical spacing between cloud layers
+                
+                // Draw pixelated cloud shape (3 rectangles of different sizes)
+                ctx.fillRect(x, y, 80, 24); // Main cloud body
+                ctx.fillRect(x + 16, y - 8, 48, 40); // Cloud top section
+                ctx.fillRect(x + 24, y - 16, 32, 56); // Cloud peak
+                
+                // Draw cloud outlines
+                ctx.strokeRect(x, y, 80, 24);
+                ctx.strokeRect(x + 16, y - 8, 48, 40);
+                ctx.strokeRect(x + 24, y - 16, 32, 56);
+            }
+        }
+        
+        /**
+         * Main render function - draws all game elements
+         */
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            
+            drawBackground(); // Draw animated background
+            drawPipes(); // Draw all pipes
+            drawPlayer(); // Draw rotating player gear
+        }
+        
+        /**
+         * Main game loop - updates game state and renders frame
+         * Only runs when game state is 'playing'
+         */
+        function gameLoop() {
+            if (gameState !== 'playing') return; // Exit if not playing
+            
+            updatePlayer(); // Update player physics
+            updatePipes(); // Update pipe positions and scoring
+            checkCollisions(); // Check for game over conditions
+            render(); // Draw everything
+            
+            requestAnimationFrame(gameLoop); // Schedule next frame
+        }
+        
+        // Initialize game when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

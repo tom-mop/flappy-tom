@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flappyTOM</title>
+    <link rel="icon" type="image/png" href="TOMzahnrad.png">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #E6E6E6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            width: 100%;
+            max-width: 720px;
+            height: 100vh;
+            max-height: 1280px;
+            position: relative;
+            background-color: #E6E6E6;
+            border: 8px solid #333;
+            border-style: solid;
+            overflow: hidden;
+            box-shadow: 12px 12px 0px #999, 0 0 0 4px #666;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(230, 230, 230, 0.95);
+            z-index: 10;
+        }
+
+        .screen.hidden {
+            display: none;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 8vw, 4rem);
+            font-weight: 900;
+            color: #333;
+            margin-bottom: 1rem;
+            text-shadow: 
+                4px 0px 0px #FFBE5A,
+                0px 4px 0px #FFBE5A,
+                4px 4px 0px #FF9500,
+                8px 8px 0px #CC7700;
+            letter-spacing: 4px;
+            filter: contrast(1.2);
+        }
+
+        .instructions {
+            font-size: clamp(1rem, 4vw, 1.5rem);
+            color: #333;
+            text-align: center;
+            margin-bottom: 2rem;
+            max-width: 80%;
+            font-weight: 700;
+            text-shadow: 2px 2px 0px #DADADA;
+        }
+
+        .button {
+            font-family: 'Montserrat', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.5rem);
+            font-weight: 700;
+            padding: 1rem 2rem;
+            background-color: #FFBE5A;
+            color: #333;
+            border: 4px solid #333;
+            border-style: solid;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 
+                4px 4px 0px #CC7700,
+                8px 8px 0px #999;
+            position: relative;
+        }
+
+        .button:hover {
+            background-color: #FFD700;
+            transform: translate(-2px, -2px);
+            box-shadow: 
+                6px 6px 0px #CC7700,
+                10px 10px 0px #999;
+        }
+
+        .button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 
+                2px 2px 0px #CC7700,
+                4px 4px 0px #999;
+        }
+
+        .score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+            font-weight: 900;
+            color: #333;
+            text-shadow: 
+                3px 0px 0px #FFBE5A,
+                0px 3px 0px #FFBE5A,
+                3px 3px 0px #FF9500,
+                6px 6px 0px #CC7700;
+            z-index: 5;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 8px 16px;
+            border: 2px solid #333;
+        }
+
+        .highscore-display {
+            font-size: clamp(1.2rem, 5vw, 2rem);
+            color: #333;
+            margin: 1rem 0;
+            text-align: center;
+            font-weight: 700;
+            text-shadow: 2px 2px 0px #DADADA;
+        }
+
+        .new-highscore {
+            color: #FF3333;
+            font-weight: 900;
+            animation: pulse8bit 0.5s infinite;
+            text-shadow: 
+                2px 2px 0px #FF9999,
+                4px 4px 0px #CC0000;
+        }
+
+        @keyframes pulse8bit {
+            0%, 100% { 
+                transform: scale(1); 
+                filter: brightness(1);
+            }
+            50% { 
+                transform: scale(1.2); 
+                filter: brightness(1.3);
+            }
+        }
+
+        .career-link {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+            color: #666;
+            text-decoration: none;
+            z-index: 20;
+            transition: color 0.2s;
+            font-weight: 700;
+            text-shadow: 1px 1px 0px #DADADA;
+        }
+
+        .career-link:hover {
+            color: #FFBE5A;
+            text-shadow: 1px 1px 0px #FF9500;
+        }
+
+        @media (max-width: 480px) {
+            #gameContainer {
+                border: 2px solid #333;
+                box-shadow: 4px 4px 0px #999;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="score" id="scoreDisplay">0</div>
+        
+        <a href="https://www.tom-instandhaltungssoftware.de/ueber-tom/karriere/" target="_blank" class="career-link">
+            Karriere im TOMteam
+        </a>
+        
+        <div id="startScreen" class="screen">
+            <h1>flappyTOM</h1>
+            <div class="instructions">
+                Steuere das Zahnrad durch die Hindernisse!<br>
+                <strong>Leertaste</strong> oder <strong>Mausklick</strong> zum Springen
+            </div>
+            <div class="highscore-display" id="startHighscore">Bester Score: 0</div>
+            <button class="button" onclick="startGame()">START</button>
+            <div style="margin-top: 1rem; font-size: 0.9rem; color: #666; font-weight: 700;">
+                Leertaste zum Start
+            </div>
+        </div>
+        
+        <div id="gameOverScreen" class="screen hidden">
+            <h1>GAME OVER</h1>
+            <div class="highscore-display" id="finalScore">Score: 0</div>
+            <div class="highscore-display" id="gameOverHighscore">Bester Score: 0</div>
+            <div id="newHighscoreMessage" class="new-highscore" style="display: none;">
+                ★ NEUER REKORD! ★
+            </div>
+            <button class="button" onclick="restartGame()">NOCHMAL</button>
+            <div style="margin-top: 1rem; font-size: 0.9rem; color: #666; font-weight: 700;">
+                Leertaste für Neustart
+            </div>
+            <a href="https://www.tom-instandhaltungssoftware.de/ueber-tom/karriere/" target="_blank" class="career-link" style="position: relative; bottom: auto; right: auto; margin-top: 2rem; font-size: 0.9rem;">
+                Entdecke Deine Karriere im TOMteam
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = 'start';
+        let score = 0;
+        let highScore = localStorage.getItem('flappyTomHighScore') || 0;
+        let gameOverTimer = 0;
+        let gameOverDelay = 1000;
+        
+        let player = {
+            x: 0,
+            y: 0,
+            size: 44,
+            velocity: 0,
+            rotation: 0,
+            jumpPower: -12,
+            gravity: 0.8
+        };
+        
+        let pipes = [];
+        let pipeWidth = 80;
+        let pipeGap = 200;
+        let pipeSpeed = 3;
+        
+        let playerImage = new Image();
+        playerImage.src = 'TOMzahnrad.png';
+        let imageLoaded = false;
+        
+        playerImage.onload = function() {
+            imageLoaded = true;
+        };
+        
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            
+            player.x = canvas.width * 0.2;
+            player.y = canvas.height / 2;
+        }
+        
+        function init() {
+            resizeCanvas();
+            updateHighScoreDisplay();
+            
+            window.addEventListener('resize', resizeCanvas);
+            
+            document.addEventListener('keydown', handleInput);
+            canvas.addEventListener('click', handleInput);
+        }
+        
+        function handleInput(e) {
+            if (e.type === 'keydown' && e.code !== 'Space') return;
+            
+            if (gameState === 'start') {
+                startGame();
+            } else if (gameState === 'playing') {
+                jump();
+            } else if (gameState === 'gameOver') {
+                if (Date.now() - gameOverTimer > gameOverDelay) {
+                    restartGame();
+                }
+            }
+        }
+        
+        function startGame() {
+            gameState = 'playing';
+            score = 0;
+            pipes = [];
+            player.y = canvas.height / 2;
+            player.velocity = 0;
+            player.rotation = 0;
+            
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            
+            generatePipe();
+            
+            gameLoop();
+        }
+        
+        function restartGame() {
+            startGame();
+        }
+        
+        function jump() {
+            player.velocity = player.jumpPower;
+        }
+        
+        function generatePipe() {
+            const minHeight = 100;
+            const maxHeight = canvas.height - pipeGap - minHeight;
+            const topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
+            
+            pipes.push({
+                x: canvas.width,
+                topHeight: topHeight,
+                bottomY: topHeight + pipeGap,
+                bottomHeight: canvas.height - (topHeight + pipeGap),
+                passed: false
+            });
+        }
+        
+        function updatePlayer() {
+            player.velocity += player.gravity;
+            player.y += player.velocity;
+            player.rotation += 5;
+            
+            if (player.rotation >= 360) player.rotation = 0;
+        }
+        
+        function updatePipes() {
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                pipes[i].x -= pipeSpeed;
+                
+                if (!pipes[i].passed && pipes[i].x + pipeWidth < player.x) {
+                    pipes[i].passed = true;
+                    score++;
+                    document.getElementById('scoreDisplay').textContent = score;
+                }
+                
+                if (pipes[i].x + pipeWidth < 0) {
+                    pipes.splice(i, 1);
+                }
+            }
+            
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 300) {
+                generatePipe();
+            }
+        }
+        
+        function checkCollisions() {
+            if (player.y + player.size/2 > canvas.height || player.y - player.size/2 < 0) {
+                gameOver();
+                return;
+            }
+            
+            for (let pipe of pipes) {
+                if (player.x + player.size/2 > pipe.x && 
+                    player.x - player.size/2 < pipe.x + pipeWidth) {
+                    
+                    if (player.y - player.size/2 < pipe.topHeight || 
+                        player.y + player.size/2 > pipe.bottomY) {
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+        }
+        
+        function gameOver() {
+            gameState = 'gameOver';
+            gameOverTimer = Date.now();
+            
+            let isNewHighScore = false;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('flappyTomHighScore', highScore);
+                isNewHighScore = true;
+            }
+            
+            document.getElementById('finalScore').textContent = `Score: ${score}`;
+            document.getElementById('gameOverHighscore').textContent = `Bester Score: ${highScore}`;
+            
+            if (isNewHighScore) {
+                document.getElementById('newHighscoreMessage').style.display = 'block';
+            } else {
+                document.getElementById('newHighscoreMessage').style.display = 'none';
+            }
+            
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+        
+        function updateHighScoreDisplay() {
+            document.getElementById('startHighscore').textContent = `Bester Score: ${highScore}`;
+        }
+        
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.rotation * Math.PI / 180);
+            
+            if (imageLoaded) {
+                ctx.drawImage(playerImage, -player.size/2, -player.size/2, player.size, player.size);
+            } else {
+                ctx.fillStyle = '#4A90E2';
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, player.size/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawPipes() {
+            ctx.fillStyle = '#FFBE5A';
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 4;
+            
+            for (let pipe of pipes) {
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+                ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+                
+                ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+                ctx.strokeRect(pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+                
+                ctx.fillStyle = '#FF9500';
+                ctx.fillRect(pipe.x - 8, pipe.topHeight - 24, pipeWidth + 16, 24);
+                ctx.fillRect(pipe.x - 8, pipe.bottomY, pipeWidth + 16, 24);
+                ctx.strokeRect(pipe.x - 8, pipe.topHeight - 24, pipeWidth + 16, 24);
+                ctx.strokeRect(pipe.x - 8, pipe.bottomY, pipeWidth + 16, 24);
+                
+                ctx.fillStyle = '#FFBE5A';
+            }
+        }
+        
+        function drawBackground() {
+            ctx.fillStyle = '#E6E6E6';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#F0F0F0';
+            ctx.strokeStyle = '#DADADA';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                const x = (i * 200 + Date.now() * 0.01) % (canvas.width + 120);
+                const y = 60 + i * 80;
+                
+                ctx.fillRect(x, y, 80, 24);
+                ctx.fillRect(x + 16, y - 8, 48, 40);
+                ctx.fillRect(x + 24, y - 16, 32, 56);
+                
+                ctx.strokeRect(x, y, 80, 24);
+                ctx.strokeRect(x + 16, y - 8, 48, 40);
+                ctx.strokeRect(x + 24, y - 16, 32, 56);
+            }
+        }
+        
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawBackground();
+            drawPipes();
+            drawPlayer();
+        }
+        
+        function gameLoop() {
+            if (gameState !== 'playing') return;
+            
+            updatePlayer();
+            updatePipes();
+            checkCollisions();
+            render();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
