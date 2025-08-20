@@ -282,7 +282,6 @@
             updateHighScoreDisplay();
             
             window.addEventListener('resize', resizeCanvas);
-            
             document.addEventListener('keydown', handleInput);
             canvas.addEventListener('click', handleInput);
         }
@@ -304,6 +303,7 @@
         function startGame() {
             gameState = 'playing';
             score = 0;
+            document.getElementById('scoreDisplay').textContent = '0';
             pipes = [];
             player.y = canvas.height / 2;
             player.velocity = 0;
@@ -462,6 +462,7 @@
             ctx.fillStyle = '#F0F0F0';
             ctx.strokeStyle = '#DADADA';
             ctx.lineWidth = 2;
+            
             for (let i = 0; i < 3; i++) {
                 const x = (i * 200 + Date.now() * 0.01) % (canvas.width + 120);
                 const y = 60 + i * 80;
