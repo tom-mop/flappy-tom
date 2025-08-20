@@ -358,6 +358,7 @@
         function startGame() {
             gameState = 'playing';
             score = 0;
+            document.getElementById('scoreDisplay').textContent = '0';
             pipes = []; // Clear all existing pipes
             player.y = canvas.height / 2; // Reset player position
             player.velocity = 0; // Reset player velocity
