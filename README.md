@@ -72,8 +72,6 @@ flappyTOM steht für präzises Timing, Spaß, Retro-Charme – und ein bisschen 
 
 ## Let’s play & build together – join the TOM-team!
 
-*bitte kopiere einfach diesen Text in ********`Deine_Karriere_im_TOMteam.md`******** als aufregendes Add-on zu deinem GitHub-Repo. User*\*:innen\*\* & Bewerber\*\*:innen\*\* werden ihn lieben!\*
-
 ---
 
 # flappyTOM - Ein süchtig machendes 8-Bit Browser Game
